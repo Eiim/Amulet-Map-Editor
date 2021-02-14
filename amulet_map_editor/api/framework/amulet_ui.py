@@ -5,9 +5,7 @@ import traceback
 
 from amulet.api.errors import LoaderNoneMatched
 from amulet_map_editor.api.wx.ui.select_world import WorldSelectDialog
-from amulet_map_editor import __version__
-from amulet_map_editor.api import lang
-from amulet_map_editor.api.logging import log
+from amulet_map_editor import __version__, lang, log
 from amulet_map_editor.api.framework.pages import WorldPageUI
 from .pages import AmuletMainMenu, BasePageUI
 
@@ -74,7 +72,7 @@ class AmuletUI(wx.Frame):
 
         self._last_page: BasePageUI = self._main_menu
 
-        self._add_world_tab(self._main_menu, lang.get("main_menu"))
+        self._add_world_tab(self._main_menu, lang.get("main_menu.tab_name"))
 
         self.Bind(wx.EVT_CLOSE, self._on_close_app)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._page_change)
@@ -176,7 +174,9 @@ class AmuletUI(wx.Frame):
                 wx.MessageBox(f"Could not find a loader for this world.\n{e}")
             except Exception as e:
                 log.error(f"Error loading world.\n{e}\n{traceback.format_exc()}")
-                wx.MessageBox(f"Error loading world.\n{e}")
+                wx.MessageBox(
+                    f"Error loading world. Check the console for more details.\n{e}"
+                )
             else:
                 self._open_worlds[path] = world
                 self._add_world_tab(world, world.world_name)

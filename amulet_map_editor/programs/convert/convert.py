@@ -4,10 +4,9 @@ import webbrowser
 from typing import TYPE_CHECKING, Callable
 
 from amulet import load_format
-from amulet.api.level import World
+from amulet.api.level import BaseLevel
 
-from amulet_map_editor.api import lang
-from amulet_map_editor.api.logging import log
+from amulet_map_editor import lang, log
 from amulet_map_editor.api.wx.ui.simple import SimplePanel
 from amulet_map_editor.api.wx.ui.select_world import WorldSelectDialog, WorldUI
 from amulet_map_editor.api.datatypes import MenuData
@@ -22,13 +21,15 @@ work_count = 0
 
 class ConvertExtension(SimplePanel, BaseProgram):
     def __init__(
-        self, container, world: World, close_self_callback: Callable[[], None]
+        self, container, world: BaseLevel, close_self_callback: Callable[[], None]
     ):
         SimplePanel.__init__(self, container)
         self.world = world
         self._close_self_callback = close_self_callback
 
-        self._close_world_button = wx.Button(self, wx.ID_ANY, label="Close World")
+        self._close_world_button = wx.Button(
+            self, wx.ID_ANY, label=lang.get("world.close_world")
+        )
         self._close_world_button.Bind(wx.EVT_BUTTON, self._close_world)
         self.add_object(self._close_world_button, 0, wx.ALL | wx.CENTER)
 
@@ -38,7 +39,7 @@ class ConvertExtension(SimplePanel, BaseProgram):
             wx.StaticText(
                 self._input,
                 wx.ID_ANY,
-                "Input World: ",
+                "{}: ".format(lang.get("program_convert.input_world")),
                 wx.DefaultPosition,
                 wx.DefaultSize,
                 0,
@@ -47,7 +48,7 @@ class ConvertExtension(SimplePanel, BaseProgram):
             wx.ALL | wx.CENTER,
         )
         self._input.add_object(
-            WorldUI(self._input, self.world.world_wrapper), 0, wx.ALL | wx.CENTER
+            WorldUI(self._input, self.world.level_wrapper), 0, wx.ALL | wx.CENTER
         )
 
         self._output = SimplePanel(self, wx.HORIZONTAL)
@@ -56,7 +57,7 @@ class ConvertExtension(SimplePanel, BaseProgram):
             wx.StaticText(
                 self._output,
                 wx.ID_ANY,
-                "Output World: ",
+                "{}: ".format(lang.get("program_convert.output_world")),
                 wx.DefaultPosition,
                 wx.DefaultSize,
                 0,
@@ -66,7 +67,7 @@ class ConvertExtension(SimplePanel, BaseProgram):
         )
 
         self._select_output_button = wx.Button(
-            self, wx.ID_ANY, label="Select Output World"
+            self, wx.ID_ANY, label=lang.get("program_convert.select_output_world")
         )
         self._select_output_button.Bind(wx.EVT_BUTTON, self._show_world_select)
         self.add_object(self._select_output_button, 0, wx.ALL | wx.CENTER)
@@ -86,7 +87,9 @@ class ConvertExtension(SimplePanel, BaseProgram):
         self.loading_bar.SetValue(0)
 
         self.convert_button = wx.Button(
-            self._convert_bar, wx.ID_ANY, label=lang.get("convert")
+            self._convert_bar,
+            wx.ID_ANY,
+            label=lang.get("program_convert.convert_button"),
         )
         self._convert_bar.add_object(self.convert_button)
         self.convert_button.Bind(wx.EVT_BUTTON, self._convert_event)
@@ -111,7 +114,7 @@ class ConvertExtension(SimplePanel, BaseProgram):
 
     def _output_world_callback(self, path):
         if path == self.world.world_path:
-            wx.MessageBox("The input and output worlds must be different")
+            wx.MessageBox(lang.get("program_convert.input_output_must_different"))
             return
         try:
             out_world_format = load_format(path)
@@ -133,7 +136,7 @@ class ConvertExtension(SimplePanel, BaseProgram):
 
     def _convert_event(self, evt):
         if self.out_world_path is None:
-            wx.MessageBox("Select a world before converting")
+            wx.MessageBox(lang.get("program_convert.select_before_converting"))
             return
         self.convert_button.Disable()
         global work_count
@@ -145,14 +148,14 @@ class ConvertExtension(SimplePanel, BaseProgram):
         global work_count
         try:
             out_world = load_format(self.out_world_path)
-            log.info(f"Converting world {self.world.world_path} to {out_world.path}")
+            log.info(f"Converting world {self.world.level_path} to {out_world.path}")
             out_world: WorldFormatWrapper
             out_world.open()
             self.world.save(out_world, self._update_loading_bar)
             out_world.close()
-            message = "World conversion completed"
+            message = lang.get("program_convert.conversion_completed")
             log.info(
-                f"Finished converting world {self.world.world_path} to {out_world.path}"
+                f"Finished converting world {self.world.level_path} to {out_world.path}"
             )
         except Exception as e:
             message = f"Error during conversion\n{e}"
@@ -165,7 +168,7 @@ class ConvertExtension(SimplePanel, BaseProgram):
     def is_closeable(self):
         if work_count:
             log.info(
-                f"World {self.world.world_path} is still being converted. Please let it finish before closing"
+                f"World {self.world.level_path} is still being converted. Please let it finish before closing"
             )
         return work_count == 0
 
